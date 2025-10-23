@@ -1,8 +1,6 @@
-# personal-map-frontend-based
-​A web app using Leaflet.js and Firebase that lets authenticated users save custom map locations and routes, search their saved data, get real-time location tracking, and calculate routes from their current position.
-
-
 # 🗺️ Personal Map Application
+
+![Application Screenshot](https://i.ibb.co/WN3JwmQy/Screenshot-20251023-200616-Chrome.jpg)
 
 This project is a single-page web application that serves as a personalized map where authenticated users can save specific locations, track their real-time location, search for saved places, calculate routes, and even draw and save custom routes. It utilizes **Leaflet.js** for interactive mapping and **Firebase** for a complete backend solution (Authentication and Realtime Database).
 
@@ -51,5 +49,4 @@ const firebaseConfig = {
     appId: "YOUR_APP_ID",
     measurementId: "YOUR_MEASUREMENT_ID" 
 };
-
 ●My algorithm my way, Ai just write Code.
