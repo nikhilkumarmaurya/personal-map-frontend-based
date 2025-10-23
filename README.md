@@ -1,6 +1,6 @@
 # 🗺️ Personal Map Application
 
-![Application Screenshot](https://i.ibb.co/WN3JwmQy/Screenshot-20251023-200616-Chrome.jpg)
+https://i.ibb.co/WN3JwmQy/Screenshot-20251023-200616-Chrome.jpg
 
 This project is a single-page web application that serves as a personalized map where authenticated users can save specific locations, track their real-time location, search for saved places, calculate routes, and even draw and save custom routes. It utilizes **Leaflet.js** for interactive mapping and **Firebase** for a complete backend solution (Authentication and Realtime Database).
 
