@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Personal Map</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body, html {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        #auth-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        #auth-form {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            width: 350px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .form-title {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #3498db;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .auth-btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .auth-btn:hover {
+            background-color: #2980b9;
+        }
+
+        .toggle-auth {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .toggle-auth span {
+            color: #3498db;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        #map-container {
+            height: 100%;
+            width: 100%;
+            position: relative;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .control-btn {
+            width: 50px;
+            height: 50px;
+            border: none;
+            border-radius: 50%;
+            background-color: white;
+            color: #333;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .control-btn:hover {
+            background-color: #f1f1f1;
+            transform: translateY(-2px);
+        }
+
+        #search-container {
+            position: absolute;
+            top: 20px;
+            left: 58px;
+            z-index: 1000;
+            display: flex;
+            gap: 5px;
+            max-width: 400px;
+            width: 80%;
+        }
+
+        #search-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        #search-btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        #search-btn:hover {
+            background-color: #2980b9;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 300px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+
+        .modal-btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .save-btn {
+            background-color: #2ecc71;
+            color: white;
+        }
+
+        .cancel-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .marker-popup {
+            text-align: center;
+        }
+
+        .delete-btn {
+            margin-top: 10px;
+            padding: 5px 10px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            display: inline-block;
+        }
+
+        .delete-btn:hover {
+            background-color: #c0392b;
+        }
+
+        #user-info {
+            position: absolute;
+            top: 60px;
+            right: 20px;
+            background-color: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #logout-btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #e74c3c;
+            color: white;
+            cursor: pointer;
+        }
+
+        #delete-modal {
+            display: none;
+            position: fixed;
+            z-index: 1002;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        #delete-modal .modal-content {
+            text-align: center;
+        }
+
+        #delete-modal .modal-buttons {
+            justify-content: center;
+            gap: 10px;
+        }
+
+        /* Styles for the search hint list */
+        #search-hint-list {
+            position: absolute;
+            top: 50px;
+            left: 58px;
+            z-index: 1001;
+            width: calc(80% - 63px);
+            max-height: 250px; /* Increased max-height */
+            overflow-y: auto;
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            display: none;
+            padding: 0;
+            margin: 0;
+            list-style: none;
+        }
+
+        #search-hint-list li {
+            padding: 10px; /* Increased padding for better spacing */
+            cursor: pointer;
+            display: flex;
+            flex-direction: column; /* Stack items vertically */
+            align-items: flex-start; /* Align items to the start (left) */
+            border-bottom: 1px solid #ddd;
+        }
+
+        #search-hint-list li:last-child {
+            border-bottom: none;
+        }
+
+        #search-hint-list li:hover {
+            background-color: #f8f8f8;
+        }
+
+        #search-hint-list li span {
+            margin-bottom: 5px; /* Add space between name and buttons */
+            font-weight: bold;  /* Make place name bold */
+            display: block;      /* Ensure the name takes full width */
+            width: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            text-align: left; /* Align name to the left */
+        }
+
+        #search-hint-list li div {
+            display: flex;        /* layout buttons in a row */
+            gap: 5px;          /* Add some gap between buttons */
+            width: 100%;
+        }
+
+        #search-hint-list li button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+        }
+
+        #search-hint-list li button:hover {
+            background-color: #217dbb;
+        }
+
+        .leaflet-routing-container {
+            background-color: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            margin-bottom: 10px;
+        }
+
+        .leaflet-routing-error {
+            color: red;
+        }
+
+        #draw-route-btn {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        #draw-route-btn:hover {
+            background-color: #218e4a;
+        }
+
+        #save-drawn-route-btn {
+            position: absolute;
+            bottom: 80px;
+            left: 20px;
+            z-index: 1000;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            background-color: #e67e22;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            display: none;
+        }
+
+        #save-drawn-route-btn:hover {
+            background-color: #d35400;
+        }
+
+        #clear-drawn-route-btn {
+            position: absolute;
+            bottom: 140px;
+            left: 20px;
+            z-index: 1000;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            background-color: #e74c3c;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            display: none;
+        }
+
+        #clear-drawn-route-btn:hover {
+            background-color: #c0392b;
+        }
+
+        #reach-route-btn {
+            background-color: #8e44ad;
+            color: white;
+        }
+
+        #reach-route-btn:hover {
+            background-color: #6c3483;
+        }
+
+        .hidden-route {
+            display: none;
+        }
+
+        .visible-route {
+            display: block;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="auth-container">
+        <div id="auth-form">
+            <h2 class="form-title" id="form-title">लॉग इन / रजिस्टर</h2>
+            <div class="form-group">
+                <label for="email">ईमेल</label>
+                <input type="email" id="email" placeholder="आपका ईमेल">
+            </div>
+            <div class="form-group">
+                <label for="password">पासवर्ड</label>
+                <input type="password" id="password" placeholder="आपका पासवर्ड">
+            </div>
+            <div id="register-fields" style="display: none;">
+                <div class="form-group">
+                    <label for="username">यूजरनेम</label>
+                    <input type="text" id="username" placeholder="अपना यूजरनेम चुनें">
+                </div>
+            </div>
+            <button id="auth-submit" class="auth-btn">लॉग इन</button>
+            <div class="toggle-auth">
+                <p>अकाउंट नहीं है? <span id="toggle-mode">रजिस्टर करें</span></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="map-container">
+        <div id="map"></div>
+
+        <div id="search-container">
+            <input type="text" id="search-input" placeholder="स्थान खोजें...">
+            <button id="search-btn"><i class="fas fa-search"></i></button>
+        </div>
+
+        <div id="search-hint-list">
+            <ul>
+            </ul>
+        </div>
+
+        <div id="user-info" style="display: none;">
+            <span id="user-name"></span>
+            <button id="logout-btn"><i class="fas fa-sign-out-alt"></i> लॉगआउट</button>
+        </div>
+
+        <div class="controls">
+            <button id="track-btn" class="control-btn" title="मेरी लाइव लोकेशन"><i class="fas fa-location-arrow"></i></button>
+            <button id="add-btn" class="control-btn" title="नया स्थान जोड़ें"><i class="fas fa-plus"></i></button>
+        </div>
+        <button id="save-drawn-route-btn">Save Route</button>
+        <button id="clear-drawn-route-btn">Clear Route</button>
+    </div>
+
+    <div id="add-modal" class="modal">
+        <div class="modal-content">
+            <h3>नया स्थान जोड़ें</h3>
+            <input type="text" id="place-name" class="modal-input" placeholder="स्थान का नाम">
+            <p id="selected-coords">चयनित स्थान: कृपया मानचित्र पर क्लिक करें</p>
+            <div class="modal-buttons">
+                <button class="modal-btn save-btn" id="save-place">सहेजें</button>
+                <button class="modal-btn cancel-btn" id="cancel-add">रद्द करें</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="delete-modal" class="modal">
+        <div class="modal-content">
+            <h3>स्थान हटाएं</h3>
+            <p>क्या आप वाकई इस स्थान को हटाना चाहते हैं?</p>
+            <div class="modal-buttons">
+                <button class="modal-btn save-btn" id="confirm-delete">हां, हटाएं</button>
+                <button class="modal-btn cancel-btn" id="cancel-delete">नहीं, रहने दें</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="route-delete-modal" class="modal">
+        <div class="modal-content">
+            <h3>मार्ग हटाएं</h3>
+            <p>क्या आप वाकई इस मार्ग को हटाना चाहते हैं?</p>
+            <div class="modal-buttons">
+                <button class="modal-btn save-btn" id="confirm-route-delete">हां, हटाएं</button>
+                <button class="modal-btn cancel-btn" id="cancel-route-delete">नहीं, रहने दें</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-routing-machine@3.2.1/dist/leaflet-routing-machine.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-routing-machine@3.2.1/dist/leaflet-routing-machine.css" />
+
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.5.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.5.0/firebase-analytics.js";
+        import { getDatabase, ref, set, onValue, push, child, get, remove } from "https://www.gstatic.com/firebasejs/11.5.0/firebase-database.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.5.0/firebase-auth.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+             apiKey: "fill here",
+            authDomain: "fill here",
+            databaseURL: "fill here",
+            projectId: "fill here",
+            storageBucket: "fill here",
+            messagingSenderId: "fill here",
+            appId: "fill here",
+            measurementId: "fill here"
+        };
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const database = getDatabase(app);
+        const auth = getAuth(app);
+
+        // Authentication DOM elements
+        const authContainer = document.getElementById('auth-container');
+        const formTitle = document.getElementById('form-title');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const usernameInput = document.getElementById('username');
+        const registerFields = document.getElementById('register-fields');
+        const authSubmitBtn = document.getElementById('auth-submit');
+        const toggleModeBtn = document.getElementById('toggle-mode');
+        const userInfo = document.getElementById('user-info');
+        const userName = document.getElementById('user-name');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        // Authentication state
+        let isLoginMode = true;
+        let currentUser = null;
+
+        // Leaflet map setup
+        const map = L.map('map').setView([20.5937, 78.9629], 5); // Default center is India
+
+        // Add Google satellite layer
+        const googleSat = L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+            attribution: '© Google Maps'
+        }).addTo(map);
+
+        // Variables
+        let trackingEnabled = false;
+        let trackingMarker = null;
+        let trackingCircle = null;
+        let watchId = null;
+        let addingPlace = false;
+        let selectedLocation = null;
+        let markers = {};
+        let markerIdToDelete = null;
+        let lastClickTime = 0;
+        const doubleClickDelay = 300;
+        let userPlaces = [];
+        let routePolyline = null;
+        let routingControl = null;
+        let drawingRoute = false;
+        let routePoints = [];
+        let drawnRouteLayer = null;
+        let editRoute = false;
+        let selectedRouteId = null;
+        let savedRoutes = {};
+        let currentRoute = null; // Track the currently displayed route
+        let routeKeyToCoordinates = {}; // Store route key and coordinates
+
+        // DOM elements
+        const addModal = document.getElementById('add-modal');
+        const deleteModal = document.getElementById('delete-modal');
+        const routeDeleteModal = document.getElementById('route-delete-modal');
+        const placeNameInput = document.getElementById('place-name');
+        const selectedCoordsText = document.getElementById('selected-coords');
+        const saveButton = document.getElementById('save-place');
+        const cancelButton = document.getElementById('cancel-add');
+        const confirmDeleteButton = document.getElementById('confirm-delete');
+        const cancelDeleteButton = document.getElementById('cancel-delete');
+        const confirmRouteDeleteButton = document.getElementById('confirm-route-delete');
+        const cancelRouteDeleteButton = document.getElementById('cancel-route-delete');
+        const trackButton = document.getElementById('track-btn');
+        const addButton = document.getElementById('add-btn');
+        const searchInput = document.getElementById('search-input');
+        const searchButton = document.getElementById('search-btn');
+        const searchHintList = document.getElementById('search-hint-list');
+        const saveDrawnRouteBtn = document.getElementById('save-drawn-route-btn');
+        const clearDrawnRouteBtn = document.getElementById('clear-drawn-route-btn');
+
+
+        // Helper function to calculate distance between two coordinates (in km) - not used for routing
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = deg2rad(lat2 - lat1);
+            const dLon = deg2rad(lon2 - lon1);
+            const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            const distance = R * c;
+            return distance;
+        }
+
+        function deg2rad(deg) {
+            return deg * (Math.PI / 180)
+        }
+
+        // Toggle authentication mode (Login/Register)
+        function toggleAuthMode() {
+            isLoginMode = !isLoginMode;
+
+            if (isLoginMode) {
+                formTitle.textContent = "लॉग इन";
+                authSubmitBtn.textContent = "लॉग इन";
+                toggleModeBtn.textContent = "रजिस्टर करें";
+                registerFields.style.display = "none";
+            } else {
+                formTitle.textContent = "रजिस्टर";
+                authSubmitBtn.textContent = "लॉग इन";
+                toggleModeBtn.textContent = "लॉग इन";
+                registerFields.style.display = "block";
+            }
+        }
+
+        // Handle authentication submit
+        function handleAuthSubmit() {
+            const email = emailInput.value.trim();
+            const password = passwordInput.value.trim();
+
+            if (!email || !password) {
+                alert("कृपया ईमेल और पासवर्ड भरें");
+                return;
+            }
+
+            if (isLoginMode) {
+                // Login
+                signInWithEmailAndPassword(auth, email, password)
+                    .then((userCredential) => {
+                        // Handle successful login
+                        authContainer.style.display = "none";
+                    })
+.catch((error) => {
+                        alert(`लॉगिन में त्रुटि: ${error.message}`);
+                    });
+            } else {
+                // Register
+                const username = usernameInput.value.trim();
+
+                if (!username) {
+                    alert("कृपया यूजरनेम भरें");
+                    return;
+                }
+
+                createUserWithEmailAndPassword(auth, email, password)
+                    .then((userCredential) => {
+                        // Save username in database
+                        const user = userCredential.user;
+                        return set(ref(database, `users/${user.uid}`), {
+                            username: username,
+                            email: email,
+                            createdAt: Date.now()
+                        });
+                    })
+                    .then(() => {
+                        // Handle successful registration
+                        authContainer.style.display = "none";
+                    })
+                    .catch((error) => {
+                        alert(`रजिस्ट्रेशन में त्रुटि: ${error.message}`);
+                    });
+            }
+        }
+
+        // Handle logout
+        function handleLogout() {
+            signOut(auth).then(() => {
+                // Clear map
+                Object.values(markers).forEach(marker => map.removeLayer(marker));
+                markers = {};
+                userPlaces = [];
+                // Clear the route
+                if (routingControl) {
+                    map.removeControl(routingControl);
+                    routingControl = null;
+                }
+                if (drawnRouteLayer) {
+                    map.removeLayer(drawnRouteLayer);
+                    drawnRouteLayer = null;
+                }
+                routePoints = [];
+                saveDrawnRouteBtn.style.display = 'none';
+                clearDrawnRouteBtn.style.display = 'none';
+                savedRoutes = {};
+                currentRoute = null; // Reset current route
+                routeKeyToCoordinates = {};
+
+                // Show auth form
+                authContainer.style.display = "flex";
+                userInfo.style.display = "none";
+
+                // Reset auth form
+                emailInput.value = "";
+                passwordInput.value = "";
+                usernameInput.value = "";
+                isLoginMode = true;
+                toggleAuthMode();
+
+                // Reset other states
+                if (trackingEnabled) {
+                    stopTracking();
+                }
+                if (addingPlace) {
+                    disableAddPlace();
+                }
+            }).catch((error) => {
+                alert(`लॉगआउट में त्रुटि: ${error.message}`);
+            });
+        }
+
+        // Load user data
+        function loadUserData(userId) {
+            // Get username
+            get(ref(database, `users/${userId}`)).then((snapshot) => {
+                if (snapshot.exists()) {
+                    const userData = snapshot.val();
+                    userName.textContent = userData.username;
+                }
+            }).catch((error) => {
+                console.error("यूजर डेटा लोड करने में त्रुटि:", error);
+            });
+
+            // Load user's places
+            loadSavedPlaces(userId);
+            loadDrawnRoutes(userId);
+        }
+
+        // Load saved places from Firebase
+        function loadSavedPlaces(userId) {
+            const placesRef = ref(database, `user_places/${userId}`);
+            onValue(placesRef, (snapshot) => {
+                // Clear existing markers
+                Object.values(markers).forEach(marker => map.removeLayer(marker));
+                markers = {};
+                userPlaces = [];
+                // Clear the route
+                if (routingControl) {
+                    map.removeControl(routingControl);
+                    routingControl = null;
+                }
+
+                const data = snapshot.val();
+                if (data) {
+                    Object.entries(data).forEach(([key, place]) => {
+                        const marker = L.marker([place.lat, place.lng]).addTo(map);
+
+                        // Add double-click event for deletion
+                        marker.on('click', (e) => {
+                            const currentTime = new Date().getTime();
+                            if (currentTime - lastClickTime < doubleClickDelay) {
+                                // Double click detected
+                                markerIdToDelete = key;
+                                deleteModal.style.display = 'block';
+                            }
+                            lastClickTime = currentTime;
+                        });
+
+                        // Bindpopup with place info
+                        marker.bindPopup(`
+                            <div class="marker-popup">
+                                <strong>${place.name}</strong><br>
+                                ${place.lat.toFixed(6)}, ${place.lng.toFixed(6)}
+                            </div>
+                        `);
+
+                        markers[key] = marker;
+                        userPlaces.push({
+                            id: key,
+                            name: place.name,
+                            lat: place.lat,
+                            lng: place.lng
+                        });
+                    });
+                }
+            });
+        }
+
+        // Delete place from Firebase
+        function deletePlace(placeId) {
+            if (!currentUser || !placeId) {
+                return;
+            }
+
+            const placeRef = ref(database, `user_places/${currentUser.uid}/${placeId}`);
+            remove(placeRef)
+                .then(() => {
+                    console.log("स्थान सफलतापूर्वक हटा दिया गया!");
+                })
+                .catch((error) => {
+                    console.error("स्थान हटाने में त्रुटि:", error);
+                    alert("स्थान हटाने में त्रुटि: " + error.message);
+                });
+        }
+
+        // Start tracking user location
+        function startTracking() {
+            if (navigator.geolocation) {
+                trackButton.innerHTML = '<i class="fas fa-stop"></i>';
+                trackingEnabled = true;
+
+                watchId = navigator.geolocation.watchPosition(
+                    (position) => {
+                        const { latitude, longitude, accuracy } = position.coords;
+
+                        // If this is the first tracking position, center the map
+                        if (!trackingMarker) {
+                            map.setView([latitude, longitude], 15);
+                        }
+
+                        // Update or create tracking marker
+                        if (trackingMarker) {
+                            trackingMarker.setLatLng([latitude, longitude]);
+                            trackingCircle.setLatLng([latitude, longitude]);
+                            trackingCircle.setRadius(accuracy);
+                        } else {
+                            trackingMarker = L.marker([latitude, longitude]).addTo(map);
+                            trackingCircle = L.circle([latitude, longitude], {
+                                radius: accuracy,
+                                color: '#3498db',
+                                fillColor: '#3498db',
+                                fillOpacity: 0.2
+                            }).addTo(map);
+                        }
+
+                        trackingMarker.bindPopup(`<div class="marker-popup"><strong>आपकी वर्तमान स्थिति</strong><br>${latitude.toFixed(6)}, ${longitude.toFixed(6)}<br>सटीकता: ${accuracy.toFixed(1)} मीटर</div>`);
+                    },
+                    (error) => {
+                        alert(`लोकेशन एक्सेस में त्रुटि: ${error.message}`);
+                        stopTracking();
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        maximumAge: 0,
+                        timeout: 5000
+                    }
+                );
+            } else {
+                alert("आपका ब्राउज़र जियोलोकेशन का समर्थन नहीं करता है।");
+            }
+        }
+
+        // Stop tracking user location
+        function stopTracking() {
+            trackButton.innerHTML = '<i class="fas fa-location-arrow"></i>';
+            trackingEnabled = false;
+
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+
+            if (trackingMarker) {
+                map.removeLayer(trackingMarker);
+                map.removeLayer(trackingCircle);
+                trackingMarker = null;
+                trackingCircle = null;
+            }
+        }
+
+        // Enable place adding mode
+        function enableAddPlace() {
+            addingPlace = true;
+            addButton.innerHTML = '<i class="fas fa-times"></i>';
+            map.getContainer().style.cursor = 'crosshair';
+        }
+
+        // Disable place adding mode
+        function disableAddPlace() {
+            addingPlace = false;
+            addButton.innerHTML = '<i class="fas fa-plus"></i>';
+            map.getContainer().style.cursor = '';
+            selectedLocation = null;
+        }
+
+        // Save place to Firebase
+        function savePlace(name, lat, lng) {
+            if (!currentUser) {
+                alert("कृपया पहले लॉगिन करें");
+                return;
+            }
+
+            const placesRef = ref(database, `user_places/${currentUser.uid}`);
+            const newPlaceRef = push(placesRef);
+            set(newPlaceRef, {
+                name: name,
+                lat: lat,
+                lng: lng,
+                timestamp: Date.now()
+            }).then(() => {
+                console.log("स्थान सफलतापूर्वक सहेजा गया!");
+            }).catch((error) => {
+                console.error("स्थान सहेजने में त्रुटि:", error);
+                alert("स्थान सहेजने में त्रुटि: " + error.message);
+            });
+        }
+
+        function clearRoute() {
+            if (routingControl) {
+                map.removeControl(routingControl);
+                routingControl = null;
+            }
+            if (currentRoute) {
+                map.removeLayer(currentRoute);
+                currentRoute = null;
+            }
+        }
+
+        // Function to display search hints
+        function displaySearchHints(query, userLat, userLng) {
+            const hintList = document.querySelector('#search-hint-list ul');
+            hintList.innerHTML = '';
+            searchHintList.style.display = 'none';
+
+            if (!query) return;
+
+            const matchingPlaces = [];
+
+            Object.entries(markers).forEach(([key, marker]) => {
+                const place = marker.getPopup().getContent();
+                const placeName = place.match(/<strong>(.*?)<\/strong>/)[1];
+                const placeLatLng = marker.getLatLng();
+
+                if (placeName.toLowerCase().includes(query.toLowerCase())) {
+                    const distance = (userLat && userLng) ? calculateDistance(userLat, userLng, placeLatLng.lat, placeLatLng.lng) : Infinity;
+                    matchingPlaces.push({
+                        key,
+                        marker,
+                        placeName,
+                        distance,
+                        lat: placeLatLng.lat,
+                        lng: placeLatLng.lng
+                    });
+                }
+            });
+
+            matchingPlaces.sort((a, b) => a.distance - b.distance);
+
+            if (matchingPlaces.length > 0) {
+                searchHintList.style.display = 'block';
+                matchingPlaces.forEach(({ key, placeName, lat, lng }) => {
+                    const li = document.createElement('li');
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = placeName;
+
+                    const buttonContainer = document.createElement('div');
+                    const pathButton = document.createElement('button');
+                    pathButton.textContent = 'Path';
+                    pathButton.addEventListener('click', (event) => {
+                        event.stopPropagation();
+                        searchInput.value = placeName;
+                        searchHintList.style.display = 'none';
+                        calculateAndDisplayRoute(lat, lng);
+                    });
+
+                    const drawButton = document.createElement('button');
+                    drawButton.textContent = 'Draw';
+                    drawButton.id = 'draw-route-btn';
+                    drawButton.addEventListener('click', (event) => {
+                        event.stopPropagation();
+                        searchInput.value = placeName;
+                        searchHintList.style.display = 'none';
+                        startDrawingRoute(lat, lng);
+                    });
+
+                    const reachButton = document.createElement('button');
+                    reachButton.textContent = 'Reach';
+                    reachButton.id = 'reach-route-btn';
+                    reachButton.addEventListener('click', (event) => {
+                        event.stopPropagation();
+                        searchInput.value = placeName;
+                        searchHintList.style.display = 'none';
+                        displayDrawnRouteForDestination(lat, lng);
+                    });
+
+                    buttonContainer.appendChild(pathButton);
+                    buttonContainer.appendChild(drawButton);
+                    buttonContainer.appendChild(reachButton);
+
+                    li.appendChild(nameSpan);
+                    li.appendChild(buttonContainer);
+                    li.addEventListener('click', () => {
+                        searchInput.value = placeName;
+                        searchHintList.style.display = 'none';
+                        searchPlaces(placeName);
+                    });
+                    hintList.appendChild(li);
+                });
+            }
+        }
+
+        // Search for places
+        function searchPlaces(query) {
+            query = query.toLowerCase();
+            let found = false;
+
+            Object.entries(markers).forEach(([key, marker]) => {
+                const place = marker.getPopup().getContent();
+                const placeName = place.match(/<strong>(.*?)<\/strong>/)[1].toLowerCase();
+
+                if (placeName.includes(query)) {
+                    marker.openPopup();
+                    map.setView(marker.getLatLng(), 15);
+                    found = true;
+                }
+            });
+
+            if (!found) {
+                alert(`"${query}" नाम का कोई स्थान नहीं मिला`);
+            }
+        }
+
+        function calculateAndDisplayRoute(destinationLat, destinationLng) {
+            if (trackingMarker) {
+                const userLatLng = trackingMarker.getLatLng();
+
+                clearRoute();
+
+                routingControl = L.Routing.control({
+                    waypoints: [
+                        L.latLng(userLatLng.lat, userLatLng.lng),
+                        L.latLng(destinationLat, destinationLng)
+                    ],
+                    routeWhileDragging: false,
+                    showAlternatives: false,
+                    createMarker: function () {
+                        return null;
+                    }
+                }).addTo(map);
+
+                routingControl.on('routesfound', function (e) {
+                    if (e.routes.length > 0) {
+                        const route = e.routes[0];
+                        alert(`Distance: ${route.summary.totalDistance / 1000} km, Duration: ${Math.round(route.summary.totalTime / 60)} minutes`);
+                    }
+                });
+
+                routingControl.on('error', function (err) {
+                    console.error("Routing error:", err);
+                    alert("मार्ग खोजने में त्रुटि हुई। कृपया पुनः प्रयास करें।");
+                });
+            } else {
+                alert("Please enable your location to get the route.");
+            }
+        }
+
+        function startDrawingRoute(destinationLat, destinationLng) {
+            drawingRoute = true;
+            editRoute = false;
+            routePoints = [];
+            if (drawnRouteLayer) {
+                map.removeLayer(drawnRouteLayer);
+                drawnRouteLayer = null;
+            }
+            saveDrawnRouteBtn.style.display = 'block';
+            clearDrawnRouteBtn.style.display = 'block';
+            map.on('click', handleMapClickForDrawing);
+            alert("Click on the map to draw your route. Click the 'Save Route' button when finished.");
+        }
+
+        function handleMapClickForDrawing(e) {
+            routePoints.push(e.latlng);
+            if (routePoints.length > 1) {
+                const polyline = L.polyline([routePoints[routePoints.length - 2], routePoints[routePoints.length - 1]], { color: 'red' }).addTo(map);
+            }
+        }
+
+        function saveDrawnRoute() {
+            if (routePoints.length > 1 && currentUser) {
+                const routeName = prompt("Enter a name for your route:");
+                if (routeName) {
+                    const routeData = {
+                        name: routeName,
+                        points: routePoints,
+                        userId: currentUser.uid,
+                        timestamp: Date.now()
+                    };
+                    saveRouteToDatabase(routeData);
+                    drawingRoute = false;
+                    map.off('click', handleMapClickForDrawing);
+                    saveDrawnRouteBtn.style.display = 'none';
+                    clearDrawnRouteBtn.style.display = 'none';
+                    alert("Route saved successfully!");
+                } else {
+                    alert("Please enter a name for your route.");
+                    return;
+                }
+            } else {
+                alert("Draw a route with at least two points before saving.");
+            }
+        }
+
+        function clearDrawnRoute() {
+            drawingRoute = false;
+            editRoute = false;
+            routePoints = [];
+            if (drawnRouteLayer) {
+                map.removeLayer(drawnRouteLayer);
+                drawnRouteLayer = null;
+            }
+            map.off('click', handleMapClickForDrawing);
+            saveDrawnRouteBtn.style.display = 'none';
+            clearDrawnRouteBtn.style.display = 'none';
+            alert("Route cleared. You can now draw a new route.");
+        }
+
+        function saveRouteToDatabase(routeData) {
+            const routesRef = ref(database, 'routes');
+            const newRouteRef = push(routesRef);
+            const newRouteKey = newRouteRef.key; // Get the key
+            routeKeyToCoordinates[newRouteKey] = routeData.points;
+            set(newRouteRef, routeData)
+                .then(() => {
+                    console.log('Route saved successfully.');
+                })
+                .catch((error) => {
+                    console.error('Error saving route:', error);
+                    alert('Failed to save route. Please try again.');
+                });
+        }
+
+        function loadDrawnRoutes(userId) {
+            const routesRef = ref(database, 'routes');
+            onValue(routesRef, (snapshot) => {
+                const routes = snapshot.val();
+                savedRoutes = {};
+                map.eachLayer(layer => {
+                    if (layer instanceof L.Polyline && layer !== googleSat) {
+                        map.removeLayer(layer);
+                    }
+                });
+                routeKeyToCoordinates = {};
+
+                if (routes) {
+                    Object.entries(routes).forEach(([routeId, routeData]) => {
+                        if (routeData.userId === userId) {
+                            savedRoutes[routeId] = routeData;
+                            routeKeyToCoordinates[routeId] = routeData.points; //store
+                            displayRouteOnMap(routeId, routeData, false); // all routes are hidden by default
+                        }
+                    });
+                }
+            });
+        }
+
+        function displayRouteOnMap(routeId, routeData, visible = false) {
+             let polyline;
+            if (visible) {
+                polyline = L.polyline(routeData.points, { color: 'green', className: 'visible-route' }).addTo(map);
+            }
+            else {
+                polyline = L.polyline(routeData.points, { color: 'green', className: 'hidden-route' }).addTo(map);
+            }
+
+            polyline.bindPopup(`<b>Route Name:</b> ${routeData.name} <br> <button id="delete-route-${routeId}" class="delete-btn">Delete Route</button>`);
+
+            polyline.on('popupopen', (e) => {
+                const deleteButton = document.getElementById(`delete-route-${routeId}`);
+                if (deleteButton) {
+                    deleteButton.addEventListener('click', () => {
+                        selectedRouteId = routeId;
+                        routeDeleteModal.style.display = 'block';
+                    });
+                }
+            });
+            return polyline;
+        }
+
+        function displayDrawnRouteForDestination(destinationLat, destinationLng) {
+            let closestRouteId = null;
+            let minDistance = Infinity;
+
+            for (const routeId in savedRoutes) {
+                const route = savedRoutes[routeId];
+                // Find the point on the route closest to the destination
+                let closestPoint = null;
+                let minPointDistance = Infinity;
+                for (const point of route.points) {
+                    const distance = calculateDistance(destinationLat, destinationLng, point.lat, point.lng);
+                    if (distance < minPointDistance) {
+                        minPointDistance = distance;
+                        closestPoint = point;
+                    }
+                }
+
+                if (minPointDistance < minDistance) {
+                    minDistance = minPointDistance;
+                    closestRouteId = routeId;
+                }
+            }
+
+            if (closestRouteId) {
+                const routeToShow = savedRoutes[closestRouteId];
+                 if (currentRoute) {
+                    map.removeLayer(currentRoute);
+                }
+                currentRoute = displayRouteOnMap(closestRouteId, routeToShow, true); //show
+                map.fitBounds(L.latLngBounds(routeToShow.points));
+
+            } else {
+                alert("No saved route found near the destination.");
+            }
+        }
+
+        function deleteDrawnRoute(routeId) {
+            if (!currentUser || !routeId) {
+                return;
+            }
+
+            const routeRef = ref(database, `routes/${routeId}`);
+            remove(routeRef)
+                .then(() => {
+                    console.log("Route deleted successfully!");
+                    if (drawnRouteLayer) {
+                        map.removeLayer(drawnRouteLayer);
+                        drawnRouteLayer = null;
+                    }
+                    loadDrawnRoutes(currentUser.uid);
+                })
+                .catch((error) => {
+                    console.error("Error deleting route:", error);
+                    alert("Failed to delete route. Please try again.");
+                });
+        }
+
+
+        // Auth state change listener
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // User is signed in
+                currentUser = user;
+                authContainer.style.display = "none";
+                userInfo.style.display = "flex";
+                loadUserData(user.uid);
+            } else {
+                // User is signed out
+                currentUser = null;
+                authContainer.style.display = "flex";
+                userInfo.style.display = "none";
+            }
+        });
+
+        // Event Listeners
+        toggleModeBtn.addEventListener('click', toggleAuthMode);
+        authSubmitBtn.addEventListener('click', handleAuthSubmit);
+        logoutBtn.addEventListener('click', handleLogout);
+
+        trackButton.addEventListener('click', () => {
+            if (trackingEnabled) {
+                stopTracking();
+            } else {
+                startTracking();
+            }
+        });
+
+        addButton.addEventListener('click', () => {
+            if (addingPlace) {
+                disableAddPlace();
+            } else {
+                enableAddPlace();
+            }
+        });
+
+        map.on('click', (e) => {
+            if (addingPlace) {
+                selectedLocation = e.latlng;
+                selectedCoordsText.textContent = `चयनित स्थान: ${selectedLocation.lat.toFixed(6)}, ${selectedLocation.lng.toFixed(6)}`;
+                addModal.style.display = 'block';
+            }
+        });
+
+        saveButton.addEventListener('click', () => {
+            const placeName = placeNameInput.value.trim();
+            if (placeName && selectedLocation) {
+                savePlace(placeName, selectedLocation.lat, selectedLocation.lng);
+                addModal.style.display = 'none';
+                placeNameInput.value = '';
+                disableAddPlace();
+            } else {
+                alert("कृपया स्थान का नाम दर्ज करें");
+            }
+        });
+
+        cancelButton.addEventListener('click', () => {
+            addModal.style.display = 'none';
+            placeNameInput.value = '';
+        });
+
+        confirmDeleteButton.addEventListener('click', () => {
+            if (markerIdToDelete) {
+                deletePlace(markerIdToDelete);
+                deleteModal.style.display = 'none';
+                markerIdToDelete = null;
+            }
+        });
+
+        cancelDeleteButton.addEventListener('click', () => {
+            deleteModal.style.display = 'none';
+            markerIdToDelete = null;
+        });
+
+        confirmRouteDeleteButton.addEventListener('click', () => {
+            if (selectedRouteId) {
+                deleteDrawnRoute(selectedRouteId);
+                routeDeleteModal.style.display = 'none';
+                selectedRouteId = null;
+            }
+        });
+
+        cancelRouteDeleteButton.addEventListener('click', () => {
+            routeDeleteModal.style.display = 'none';
+            selectedRouteId = null;
+        });
+
+        searchButton.addEventListener('click', () => {
+            const query = searchInput.value.trim();
+            if (query) {
+                searchPlaces(query);
+            }
+        });
+
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const query = searchInput.value.trim();
+                if (query) {
+                    searchPlaces(query);
+                }
+            }
+        });
+
+        searchInput.addEventListener('input', () => {
+            const query = searchInput.value.trim();
+            let userLat = null;
+            let userLng = null;
+
+            if (trackingMarker) {
+                const userLocation = trackingMarker.getLatLng();
+                userLat = userLocation.lat;
+                userLng = userLocation.lng;
+            }
+
+            displaySearchHints(query, userLat, userLng);
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!searchContainer.contains(event.target)) {
+                searchHintList.style.display = 'none';
+            }
+        });
+
+        saveDrawnRouteBtn.addEventListener('click', saveDrawnRoute);
+        clearDrawnRouteBtn.addEventListener('click', clearDrawnRoute);
+
+
+        // Initialize with login form
+        toggleAuthMode();
+    </script>
+</body>
+</html>
